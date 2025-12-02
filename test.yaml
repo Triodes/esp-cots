@@ -18,7 +18,7 @@ esphome:
   # configuration and updates.
   project:
     name: triodes.esp-cots
-    version: "0.6"
+    version: "0.7"
 
 # To be able to get logs from the device via serial and api.
 logger:
@@ -60,6 +60,8 @@ factory_reset:
 button:
   - platform: factory_reset
     name: Factory Reset
+  - platform: restart
+    name: Restart
 
 output:
   - platform: esp8266_pwm
