@@ -36,7 +36,7 @@ ota:
 update:
   - platform: http_request
     name: "Firmware Update"
-    source: "https://github.com/triodes/releases/latest/manifest.json"
+    source: "https://github.com/triodes/esp-cots/releases/latest/download/manifest.json"
 
 # This should point to the public location of this yaml file.
 dashboard_import:
