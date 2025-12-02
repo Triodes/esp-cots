@@ -1,0 +1,16 @@
+{
+  "name": "ESP COTS",
+  "version": "x.x",
+  "builds": [
+    {
+      "chipFamily": "ESP8266",
+      "ota": {
+        "md5": "00112233445566778899aabbccddeeff",
+        "path": "esp-cots.bin",
+        "release_url": "http://github.com/triodes/esp-cots/releases/x.x",
+        "summary": "Summary here"
+      }
+    }
+  ]
+}
+
