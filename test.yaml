@@ -2,7 +2,7 @@
 substitutions:
   name: "esp-cots"
   friendly_name: "ESP COTS"
-  version: "{{VERSION}}"
+  version: "0.11"
 
 esp32:
   variant: ESP32C6

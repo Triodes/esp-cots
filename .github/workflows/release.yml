@@ -3,10 +3,6 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: "Release version (also used as tag name), e.g. 1.0"
-        required: true
-        type: string
       summary:
         description: "Release summary shown in the update entity"
         required: true
@@ -19,21 +15,44 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ inputs.version }}
       SUMMARY: ${{ inputs.summary }}
     steps:
-      - name: Validate version
-        run: |
-          if [[ ! "$VERSION" =~ ^[0-9A-Za-z._-]+$ ]]; then
-            echo "Invalid version: $VERSION" >&2
-            exit 1
-          fi
-
       - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ESPHome
+        run: pip install esphome
+
+      - name: Read version from test.yaml
+        run: |
+          VERSION=$(python3 - <<'EOF'
+          import yaml
+
+          class Loader(yaml.SafeLoader):
+              pass
+
+          # ESPHome uses custom tags like !secret / !lambda; ignore them
+          Loader.add_multi_constructor("!", lambda loader, suffix, node: None)
+
+          with open("test.yaml") as f:
+              data = yaml.load(f, Loader=Loader)
+          print(data["substitutions"]["version"])
+          EOF
+          )
+          if [[ ! "$VERSION" =~ ^[0-9A-Za-z._-]+$ ]]; then
+            echo "Invalid version in test.yaml: $VERSION" >&2
+            exit 1
+          fi
+          echo "Version: $VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Create and push tag
         run: |
@@ -45,22 +64,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "$VERSION" -m "Release $VERSION"
           git push origin "refs/tags/$VERSION"
-
-      - name: Fill in version in test.yaml
-        run: |
-          python3 - <<'EOF'
-          import os, pathlib
-          p = pathlib.Path("test.yaml")
-          p.write_text(p.read_text().replace("{{VERSION}}", os.environ["VERSION"]))
-          EOF
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install ESPHome
-        run: pip install esphome
 
       - name: Build firmware
         run: esphome compile test.yaml
@@ -101,4 +104,5 @@ jobs:
             dist/manifest.json \
             --title "$VERSION" \
             --notes "$SUMMARY" \
-            --verify-tag
+            --verify-tag \
+            --draft
