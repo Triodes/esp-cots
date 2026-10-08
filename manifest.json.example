@@ -1,14 +1,14 @@
 {
   "name": "ESP COTS",
-  "version": "x.x",
+  "version": "{{VERSION}}",
   "builds": [
     {
-      "chipFamily": "ESP8266",
+      "chipFamily": "ESP32-C6",
       "ota": {
-        "md5": "00112233445566778899aabbccddeeff",
-        "path": "esp-cots.bin",
-        "release_url": "https://github.com/triodes/esp-cots/releases/x.x",
-        "summary": "Summary here"
+        "md5": "{{HASH}}",
+        "path": "esp-cots-firmware.bin",
+        "release_url": "https://github.com/triodes/esp-cots/releases/{{VERSION}}",
+        "summary": "{{SUMMARY}}"
       }
     }
   ]

@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (also used as tag name), e.g. 1.0"
+        required: true
+        type: string
+      summary:
+        description: "Release summary shown in the update entity"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ inputs.version }}
+      SUMMARY: ${{ inputs.summary }}
+    steps:
+      - name: Validate version
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9A-Za-z._-]+$ ]]; then
+            echo "Invalid version: $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Create and push tag
+        run: |
+          if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
+            echo "Tag $VERSION already exists" >&2
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "refs/tags/$VERSION"
+
+      - name: Fill in version in test.yaml
+        run: |
+          python3 - <<'EOF'
+          import os, pathlib
+          p = pathlib.Path("test.yaml")
+          p.write_text(p.read_text().replace("{{VERSION}}", os.environ["VERSION"]))
+          EOF
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ESPHome
+        run: pip install esphome
+
+      - name: Build firmware
+        run: esphome compile test.yaml
+
+      - name: Collect binary
+        run: |
+          OTA_BIN=$(find .esphome/build -type f -name 'firmware.ota.bin' | head -n 1)
+          if [[ -z "$OTA_BIN" ]]; then
+            echo "firmware.ota.bin not found" >&2
+            exit 1
+          fi
+          mkdir -p dist
+          cp "$OTA_BIN" dist/esp-cots-firmware.bin
+
+      - name: Generate manifest.json
+        run: |
+          HASH=$(md5sum dist/esp-cots-firmware.bin | cut -d ' ' -f 1)
+          HASH="$HASH" python3 - <<'EOF'
+          import json, os, pathlib
+          def esc(s):
+              # Escape for embedding inside a JSON string literal
+              return json.dumps(s)[1:-1]
+          text = pathlib.Path("manifest.json.example").read_text()
+          text = (text.replace("{{VERSION}}", esc(os.environ["VERSION"]))
+                      .replace("{{SUMMARY}}", esc(os.environ["SUMMARY"]))
+                      .replace("{{HASH}}", os.environ["HASH"]))
+          json.loads(text)
+          pathlib.Path("dist/manifest.json").write_text(text)
+          EOF
+          cat dist/manifest.json
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$VERSION" \
+            dist/esp-cots-firmware.bin \
+            dist/manifest.json \
+            --title "$VERSION" \
+            --notes "$SUMMARY" \
+            --verify-tag

@@ -2,6 +2,7 @@
 substitutions:
   name: "esp-cots"
   friendly_name: "ESP COTS"
+  version: "{{VERSION}}"
 
 esp32:
   variant: ESP32C6
@@ -18,7 +19,7 @@ esphome:
   # configuration and updates.
   project:
     name: triodes.esp-cots
-    version: "0.9"
+    version: "${version}"
 
 # To be able to get logs from the device via serial and api.
 logger:
@@ -28,6 +29,8 @@ api:
 
 http_request:
   verify_ssl: true
+  buffer_size_rx: 2048
+  buffer_size_tx: 2048
 
 # OTA is required for Over-the-Air updating
 ota:
@@ -36,7 +39,7 @@ ota:
 update:
   - platform: http_request
     name: "Firmware Update"
-    source: "https://comptex.nl/esphome/manifest.json"
+    source: "https://github.com/Triodes/esp-cots/releases/latest/download/manifest.json"
 
 # This should point to the public location of this yaml file.
 dashboard_import:
