@@ -62,7 +62,9 @@ light:
   - platform: status_led
     name: Status LED Light
     id: light_status_led_1
-    pin: GPIO15
+    pin: 
+      number: GPIO15
+      inverted: true
 
 button:
   - platform: restart
