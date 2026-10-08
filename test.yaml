@@ -18,7 +18,7 @@ esphome:
   # configuration and updates.
   project:
     name: triodes.esp-cots
-    version: "0.8"
+    version: "0.9"
 
 # To be able to get logs from the device via serial and api.
 logger:
