@@ -75,11 +75,11 @@ jobs:
             exit 1
           fi
           mkdir -p dist
-          cp "$OTA_BIN" dist/esp-cots-firmware.bin
+          cp "$OTA_BIN" dist/esp-cots-firmware.ota.bin
 
       - name: Generate manifest.json
         run: |
-          HASH=$(md5sum dist/esp-cots-firmware.bin | cut -d ' ' -f 1)
+          HASH=$(md5sum dist/esp-cots-firmware.ota.bin | cut -d ' ' -f 1)
           HASH="$HASH" python3 - <<'EOF'
           import json, os, pathlib
           def esc(s):

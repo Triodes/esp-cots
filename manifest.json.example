@@ -6,7 +6,7 @@
       "chipFamily": "ESP32-C6",
       "ota": {
         "md5": "{{HASH}}",
-        "path": "esp-cots-firmware.bin",
+        "path": "esp-cots-firmware.ota.bin",
         "release_url": "https://github.com/triodes/esp-cots/releases/{{VERSION}}",
         "summary": "{{SUMMARY}}"
       }
