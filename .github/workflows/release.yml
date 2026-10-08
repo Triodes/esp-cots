@@ -28,8 +28,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install ESPHome
-        run: pip install esphome
+      - name: Install PyYAML
+        run: pip install pyyaml
 
       - name: Read version from test.yaml
         run: |
@@ -54,16 +54,15 @@ jobs:
           echo "Version: $VERSION"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
-      - name: Create and push tag
+      - name: Check tag does not exist
         run: |
           if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
             echo "Tag $VERSION already exists" >&2
             exit 1
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin "refs/tags/$VERSION"
+
+      - name: Install ESPHome
+        run: pip install esphome
 
       - name: Build firmware
         run: esphome compile test.yaml
@@ -94,6 +93,13 @@ jobs:
           pathlib.Path("dist/manifest.json").write_text(text)
           EOF
           cat dist/manifest.json
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "refs/tags/$VERSION"
 
       - name: Create GitHub release
         env:
