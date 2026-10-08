@@ -3,8 +3,8 @@ substitutions:
   name: "esp-cots"
   friendly_name: "ESP COTS"
 
-esp8266:
-  board: nodemcu
+esp32:
+  variant: ESP32C6
 
 esphome:
   name: "${name}"
@@ -18,7 +18,7 @@ esphome:
   # configuration and updates.
   project:
     name: triodes.esp-cots
-    version: "0.7"
+    version: "0.8"
 
 # To be able to get logs from the device via serial and api.
 logger:
@@ -27,7 +27,7 @@ logger:
 api:
 
 http_request:
-  verify_ssl: False
+  verify_ssl: true
 
 # OTA is required for Over-the-Air updating
 ota:
@@ -41,7 +41,7 @@ update:
 # This should point to the public location of this yaml file.
 dashboard_import:
   package_import_url: github://triodes/esp-cots/test.yaml@main
-  import_full_config: true # or true
+  import_full_config: false # or true
 
 wifi:
   # Set up a wifi access point
@@ -55,24 +55,12 @@ captive_portal:
 # Sets up the improv via serial client for Wi-Fi provisioning
 improv_serial:
 
-factory_reset:
+light:
+  - platform: status_led
+    name: Status LED Light
+    id: light_status_led_1
+    pin: GPIO15
 
 button:
-  - platform: factory_reset
-    name: Factory Reset
   - platform: restart
-    name: Restart
-
-output:
-  - platform: esp8266_pwm
-    pin: GPIO16
-    id: led
-    inverted: true
-    min_power: 0.0001
-    zero_means_zero: True
-
-light:
-  - platform: monochromatic
-    id: led_onboard
-    name: Onboard LED
-    output: led
+    name: "Restart"
