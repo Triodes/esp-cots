@@ -105,8 +105,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$VERSION" \
-            dist/esp-cots-firmware.bin \
+          gh release create "v$VERSION" \
+            dist/esp-cots-firmware.ota.bin \
             dist/manifest.json \
             --title "$VERSION" \
             --notes "$SUMMARY" \
