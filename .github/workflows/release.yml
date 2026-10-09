@@ -1,6 +1,9 @@
 name: Release
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       summary:
@@ -12,16 +15,18 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  check:
     runs-on: ubuntu-latest
-    env:
-      SUMMARY: ${{ inputs.summary }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      sha: ${{ steps.version.outputs.sha }}
+      release: ${{ steps.compare.outputs.release }}
+      draft: ${{ steps.compare.outputs.draft }}
     steps:
-      - name: Checkout main
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: main
-          fetch-depth: 0
+          ref: ${{ github.event_name == 'push' && github.sha || 'main' }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,6 +37,7 @@ jobs:
         run: pip install pyyaml
 
       - name: Read version from test.yaml
+        id: version
         run: |
           VERSION=$(python3 - <<'EOF'
           import yaml
@@ -47,19 +53,68 @@ jobs:
           print(data["substitutions"]["version"])
           EOF
           )
-          if [[ ! "$VERSION" =~ ^[0-9A-Za-z._-]+$ ]]; then
-            echo "Invalid version in test.yaml: $VERSION" >&2
-            exit 1
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::notice::Version '$VERSION' in test.yaml is not in x.x.x format; skipping release"
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          echo "valid=true" >> "$GITHUB_OUTPUT"
           echo "Version: $VERSION"
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Compare with latest release
+        id: compare
+        if: steps.version.outputs.valid == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          RELEASES=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" --jq '.[] | [.tag_name, .draft] | @tsv')
+          LATEST=$(awk -F'\t' '$2 == "false" { print $1 }' <<< "$RELEASES" \
+            | grep -E '^[0-9]+(\.[0-9]+)*$' \
+            | sort -V | tail -n 1 || true)
+          echo "Latest published release: ${LATEST:-<none>}"
+          if awk -F'\t' -v v="$VERSION" '$1 == v && $2 == "true" { found = 1 } END { exit !found }' <<< "$RELEASES"; then
+            echo "Draft release $VERSION exists and will be overwritten"
+            echo "draft=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "draft=false" >> "$GITHUB_OUTPUT"
+          fi
+          HIGHEST=$(printf '%s\n%s\n' "$LATEST" "$VERSION" | sort -V | tail -n 1)
+          if [[ -z "$LATEST" || ( "$HIGHEST" == "$VERSION" && "$LATEST" != "$VERSION" ) ]]; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Version $VERSION is not higher than latest release $LATEST; skipping release"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    needs: check
+    if: needs.check.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      DRAFT_EXISTS: ${{ needs.check.outputs.draft }}
+      SUMMARY: ${{ inputs.summary || github.event.head_commit.message }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check.outputs.sha }}
+          fetch-depth: 0
 
       - name: Check tag does not exist
         run: |
-          if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
+          if [[ "$DRAFT_EXISTS" != "true" ]] && git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
             echo "Tag $VERSION already exists" >&2
             exit 1
           fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Install ESPHome
         run: pip install esphome
@@ -94,6 +149,14 @@ jobs:
           EOF
           cat dist/manifest.json
 
+      - name: Delete existing draft release
+        if: env.DRAFT_EXISTS == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete "$VERSION" --yes --cleanup-tag
+          git tag -d "$VERSION" 2>/dev/null || true
+
       - name: Create and push tag
         run: |
           git config user.name "github-actions[bot]"
@@ -105,7 +168,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v$VERSION" \
+          gh release create "$VERSION" \
             dist/esp-cots-firmware.ota.bin \
             dist/manifest.json \
             --title "$VERSION" \
