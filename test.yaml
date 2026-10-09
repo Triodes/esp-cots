@@ -2,7 +2,7 @@
 substitutions:
   name: "esp-cots"
   friendly_name: "ESP COTS"
-  version: "0.12"
+  version: "0.14"
 
 esp32:
   variant: ESP32C6
@@ -20,6 +20,11 @@ esphome:
   project:
     name: triodes.esp-cots
     version: "${version}"
+
+  on_boot:
+    priority: 1000.0
+    then:
+      - switch.turn_off: antenna_feature
 
 # To be able to get logs from the device via serial and api.
 logger:
@@ -69,3 +74,25 @@ light:
 button:
   - platform: restart
     name: "Restart"
+
+sensor:
+  - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
+    name: "WiFi Signal dB"
+    id: wifi_signal_db
+    update_interval: 5s
+    entity_category: "diagnostic"
+
+switch:
+  - platform: gpio
+    id: antenna_feature
+    pin: GPIO3
+    restore_mode: ALWAYS_OFF
+    internal: true
+  - platform: gpio
+    name: External Antenna
+    id: external_antenna
+    pin: GPIO14
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: "mdi:antenna"
+    entity_category: CONFIG
+  
