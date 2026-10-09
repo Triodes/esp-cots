@@ -2,7 +2,7 @@
 substitutions:
   name: "esp-cots"
   friendly_name: "ESP COTS"
-  version: "0.15"
+  version: "0.16"
 
 esp32:
   variant: ESP32C6
@@ -31,6 +31,7 @@ logger:
 
 # API is a requirement of the dashboard import.
 api:
+  encryption:
 
 http_request:
   verify_ssl: true
@@ -74,13 +75,8 @@ light:
 button:
   - platform: restart
     name: "Restart"
-
-sensor:
-  - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
-    name: "WiFi Signal dB"
-    id: wifi_signal_db
-    update_interval: 5s
-    entity_category: "diagnostic"
+  - platform: factory_reset
+    name: Factory Reset
 
 switch:
   - platform: gpio
