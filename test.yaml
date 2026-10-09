@@ -95,4 +95,3 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
     icon: "mdi:antenna"
     entity_category: CONFIG
-  
