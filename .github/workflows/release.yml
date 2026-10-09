@@ -24,12 +24,12 @@ jobs:
       draft: ${{ steps.compare.outputs.draft }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event_name == 'push' && github.sha || 'main' }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -53,8 +53,8 @@ jobs:
           print(data["substitutions"]["version"])
           EOF
           )
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::notice::Version '$VERSION' in test.yaml is not in x.x.x format; skipping release"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo "::notice::Version '$VERSION' in test.yaml is not in x.x format; skipping release"
             echo "valid=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -99,7 +99,7 @@ jobs:
       SUMMARY: ${{ inputs.summary || github.event.head_commit.message }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.check.outputs.sha }}
           fetch-depth: 0
@@ -112,7 +112,7 @@ jobs:
           fi
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
