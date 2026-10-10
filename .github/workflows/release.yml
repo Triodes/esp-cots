@@ -125,12 +125,18 @@ jobs:
       - name: Collect binary
         run: |
           OTA_BIN=$(find .esphome/build -type f -name 'firmware.ota.bin' | head -n 1)
+          FACTORY_BIN=$(find .esphome/build -type f -name 'firmware.factory.bin' | head -n 1)
           if [[ -z "$OTA_BIN" ]]; then
             echo "firmware.ota.bin not found" >&2
             exit 1
           fi
+          if [[ -z "$FACTORY_BIN" ]]; then
+            echo "firmware.factory.bin not found" >&2
+            exit 1
+          fi
           mkdir -p dist
           cp "$OTA_BIN" dist/esp-cots-firmware.ota.bin
+          cp "$FACTORY_BIN" dist/esp-cots-firmware.factory.bin
 
       - name: Generate manifest.json
         run: |
@@ -170,6 +176,7 @@ jobs:
         run: |
           gh release create "$VERSION" \
             dist/esp-cots-firmware.ota.bin \
+            dist/esp-cots-firmware.factory.bin \
             dist/manifest.json \
             --title "$VERSION" \
             --notes "$SUMMARY" \
