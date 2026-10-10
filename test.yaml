@@ -2,7 +2,7 @@
 substitutions:
   name: "esp-cots"
   friendly_name: "ESP COTS"
-  version: "0.17"
+  version: "0.18"
 
 esp32:
   variant: ESP32C6
@@ -77,6 +77,7 @@ button:
     name: "Restart"
   - platform: factory_reset
     name: Factory Reset
+    id: factory_reset_button
 
 switch:
   - platform: gpio
@@ -91,3 +92,27 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
     icon: "mdi:antenna"
     entity_category: CONFIG
+
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO09
+      inverted: true
+    name: "Factory Reset Button"
+    internal: true
+    on_multi_click:
+      - timing:
+          - ON for at least 10s
+        then:
+          - light.toggle: light_status_led_1
+          - delay: 200ms
+          - light.toggle: light_status_led_1
+          - delay: 200ms
+          - light.toggle: light_status_led_1
+          - delay: 200ms
+          - light.toggle: light_status_led_1
+          - delay: 200ms
+          - light.toggle: light_status_led_1
+          - delay: 1s
+          - button.press: factory_reset_button
